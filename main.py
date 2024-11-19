@@ -2,13 +2,14 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 import secrets
+from os import environ
 
 app = FastAPI()
 
 # Простые "моковые" данные для авторизации
-FAKE_USERNAME = "admin"
-FAKE_PASSWORD = "password"
-AUTHORIZED_TOKEN = "my_secure_token"
+USERNAME = environ["USERNAME"]
+PASSWORD = environ["PASSWORD"]
+TOKEN = environ["TOKEN"]
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth")
 
@@ -17,7 +18,7 @@ class AuthResponse(BaseModel):
 
 def verify_credentials(username: str, password: str) -> bool:
     """Проверка имени пользователя и пароля."""
-    return secrets.compare_digest(username, FAKE_USERNAME) and secrets.compare_digest(password, FAKE_PASSWORD)
+    return secrets.compare_digest(username, USERNAME) and secrets.compare_digest(password, PASSWORD)
 
 @app.post("/auth", response_model=AuthResponse)
 async def auth(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -28,11 +29,11 @@ async def auth(form_data: OAuth2PasswordRequestForm = Depends()):
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return AuthResponse(token=AUTHORIZED_TOKEN)
+    return AuthResponse(token=TOKEN)
 
 def verify_token(token: str = Depends(oauth2_scheme)):
     """Проверка валидности токена."""
-    if token != AUTHORIZED_TOKEN:
+    if token != TOKEN:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
@@ -40,12 +41,14 @@ def verify_token(token: str = Depends(oauth2_scheme)):
         )
     return token
 
-@app.get("/")
-async def protected_route(token: str = Depends(verify_token)):
-    """Защищенный роут, доступный только при наличии корректного токена."""
-    return {"message": "You are authorized"}
+# @app.get("/")
+# async def protected_route(token: str = Depends(verify_token)):
+#     """Защищенный роут, доступный только при наличии корректного токена."""
+#     return {"message": "You are authorized"}
 
-@app.get("/open")
-async def open_route():
-    """Незащищенный роут, доступный всем."""
-    return {"message": "Welcome to the open route!"}
+
+# @app.get("/open")
+# async def open_route():
+#     """Незащищенный роут, доступный всем."""
+#     return {"message": "Welcome to the open route!"}
+
