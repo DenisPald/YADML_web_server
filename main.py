@@ -1,15 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 import secrets
-from os import environ
+import os
 
 app = FastAPI()
 
-# Простые "моковые" данные для авторизации
-USERNAME = environ["USERNAME"]
-PASSWORD = environ["PASSWORD"]
-TOKEN = environ["TOKEN"]
+USERNAME = os.environ["USERNAME"]
+PASSWORD = os.environ["PASSWORD"]
+TOKEN = os.environ["TOKEN"]
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth")
 
@@ -41,14 +40,22 @@ def verify_token(token: str = Depends(oauth2_scheme)):
         )
     return token
 
-# @app.get("/")
-# async def protected_route(token: str = Depends(verify_token)):
-#     """Защищенный роут, доступный только при наличии корректного токена."""
-#     return {"message": "You are authorized"}
+@app.post("/upload")
+async def upload_file(
+    file: UploadFile,
+    token: str = Depends(verify_token)
+):
+    """Прием датасета от авторизованного пользователя и сохранение его в папку."""
+    # Создаем папку для датасета
+    os.makedirs('data/', exist_ok=True)
+    
+    # Полный путь для сохранения файла
+    file_path = 'data/dataset.csv'
+    content = await file.read()
 
+    # Сохранение файла
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(content.decode('utf-8'))
 
-# @app.get("/open")
-# async def open_route():
-#     """Незащищенный роут, доступный всем."""
-#     return {"message": "Welcome to the open route!"}
+    return {"message": "OK"}
 
