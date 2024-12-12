@@ -11,14 +11,15 @@ from model_utils import aggregate_models, distribute_global_model
 
 async def execute_remote_training(ssh_config: dict, script_path: str, args: dict[str, str]):
     cmd = f"python3 {script_path} " + " ".join([f"--{k} {v}" for k, v in args.items()])
-    # print(f"Запуск команды на {ip}:{ssh_config["port"]} : {cmd}")
 
     host = ssh_config.pop('hostname')
 
     async with asyncssh.connect(host, **ssh_config, known_hosts=None) as conn:
-        process = await conn.create_process(cmd)
+        process = conn.create_process(cmd)
 
-    ssh_config['hostname'] = host
+        ssh_config['hostname'] = host
+
+        return await process
 
 
 def collect_remote_models(nodes: list[dict], remote_model_dir: str, remote_model_name:str, local_model_dir: str) -> list[str]:
@@ -36,7 +37,6 @@ def collect_remote_models(nodes: list[dict], remote_model_dir: str, remote_model
         # Скачиваем файл через SFTP
         with ssh.open_sftp() as sftp:
             sftp.get(remote_model_path, local_model_path)
-            # print(f"Модель скачана с {ip}:{config["port"]} : {local_model_path}")
         local_model_paths.append(local_model_path)
 
     return local_model_paths

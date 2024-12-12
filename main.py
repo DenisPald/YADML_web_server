@@ -3,12 +3,14 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import secrets
+from dotenv import load_dotenv
 import os
 import json
 import subprocess
 
 app = FastAPI()
 
+load_dotenv("./env_file.txt")
 USERNAME = os.environ["USERNAME"]
 PASSWORD = os.environ["PASSWORD"]
 TOKEN = os.environ["TOKEN"]

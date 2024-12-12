@@ -9,9 +9,6 @@ from model import LeNet
 def distribute_global_model(global_model_path: str, nodes: list[dict], remote_model_dir: str):
     """
     Распространяет глобальную модель на все рабочие узлы.
-
-    :param global_model_path: Путь к объединенной модели на главной ноде.
-    :param remote_model_dir: Папка на узле для сохранения модели.
     """
     for config in nodes:
         ssh = paramiko.SSHClient()
@@ -41,7 +38,6 @@ def aggregate_models(model_paths: list, output_path: str, input_dim: int, output
 
     aggregated_model.load_state_dict(aggregated_state_dict)
     torch.save(aggregated_model.state_dict(), output_path)
-    print(f"Объединенная модель сохранена в {output_path}")
 
 
 """
