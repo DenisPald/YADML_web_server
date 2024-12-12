@@ -59,8 +59,8 @@ async def upload_file(
     content = await file.read()
 
     # Сохранение файла
-    with open(file_path, 'w', encoding='utf-8') as f:
-        f.write(content.decode('utf-8'))
+    with open(file_path, 'wb') as f:
+        f.write(content)
 
     return {"message": "OK"}
 
@@ -86,13 +86,14 @@ async def run_training(
             detail="Training process is already running."
         )
     
-    # Сохраняем конфигурацию в `conf.json`
     config_path = "main_node/conf.json"
     with open(config_path, "w", encoding="utf-8") as config_file:
         json.dump([worker.model_dump_json() for worker in workers], config_file, ensure_ascii=False, indent=4)
 
     # Запускаем скрипт в отдельном процессе
-    process = subprocess.Popen(["python3", "main_node/run.py"])
+    process = subprocess.Popen(
+        ["python3", "main_node/run.py"],
+    )
     PROCESS_TRACKER["running"] = True
 
     def monitor_process():
@@ -120,7 +121,7 @@ async def get_final_model(token: str = Depends(verify_token)):
     
     if not os.path.exists(model_path):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Final model is not found"
         )
 

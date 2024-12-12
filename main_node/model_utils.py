@@ -6,7 +6,7 @@ from torch import nn
 from model import LeNet
 
 
-def distribute_global_model(global_model_path: str, nodes: dict[str, dict], remote_model_dir: str):
+def distribute_global_model(global_model_path: str, nodes: list[dict], remote_model_dir: str):
     """
     Распространяет глобальную модель на все рабочие узлы.
 
@@ -14,10 +14,10 @@ def distribute_global_model(global_model_path: str, nodes: dict[str, dict], remo
     :param nodes: Словарь узлов в формате {IP: username}.
     :param remote_model_dir: Папка на узле для сохранения модели.
     """
-    for ip, config in nodes.items():
+    for config in nodes:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(ip, **config)
+        ssh.connect(**config)
 
         # Отправляем глобальную модель через SFTP
         with ssh.open_sftp() as sftp:
