@@ -12,14 +12,16 @@ from model_utils import aggregate_models, distribute_global_model
 async def execute_remote_training(ssh_config: dict, script_path: str, args: dict[str, str]):
     cmd = f"python3 {script_path} " + " ".join([f"--{k} {v}" for k, v in args.items()])
 
-    host = ssh_config.pop('hostname')
+    try:
+        host = ssh_config.pop('hostname')
+        async with asyncssh.connect(host, **ssh_config, known_hosts=None) as conn:
+            process = conn.create_process(cmd)
 
-    async with asyncssh.connect(host, **ssh_config, known_hosts=None) as conn:
-        process = conn.create_process(cmd)
+            ssh_config['hostname'] = host
 
-        ssh_config['hostname'] = host
-
-        return await process
+            return await process
+    except Exception:
+        return -1
 
 
 def collect_remote_models(nodes: list[dict], remote_model_dir: str, remote_model_name:str, local_model_dir: str) -> list[str]:
@@ -32,7 +34,11 @@ def collect_remote_models(nodes: list[dict], remote_model_dir: str, remote_model
         
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(**config)
+        try:
+            ssh.connect(**config)
+        except Exception:
+            nodes.remove(config)
+            continue;
 
         # Скачиваем файл через SFTP
         with ssh.open_sftp() as sftp:

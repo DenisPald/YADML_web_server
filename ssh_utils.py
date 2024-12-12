@@ -6,7 +6,11 @@ def distribute_files_to_nodes(files: list, nodes: list[dict], remote_dir: str):
     for i, config in enumerate(nodes):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(**config)
+        try:
+            ssh.connect(**config)
+        except Exception:
+            nodes.remove(config)
+            continue;
 
         # Убедиться, что папка существует
         ssh.exec_command(f"mkdir -p {remote_dir}")

@@ -13,7 +13,11 @@ def distribute_global_model(global_model_path: str, nodes: list[dict], remote_mo
     for config in nodes:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(**config)
+        try:
+            ssh.connect(**config)
+        except Exception:
+            nodes.remove(config)
+            continue;
 
         # Отправляем глобальную модель через SFTP
         with ssh.open_sftp() as sftp:
