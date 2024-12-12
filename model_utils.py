@@ -11,7 +11,6 @@ def distribute_global_model(global_model_path: str, nodes: list[dict], remote_mo
     Распространяет глобальную модель на все рабочие узлы.
 
     :param global_model_path: Путь к объединенной модели на главной ноде.
-    :param nodes: Словарь узлов в формате {IP: username}.
     :param remote_model_dir: Папка на узле для сохранения модели.
     """
     for config in nodes:
@@ -23,7 +22,6 @@ def distribute_global_model(global_model_path: str, nodes: list[dict], remote_mo
         with ssh.open_sftp() as sftp:
             remote_model_path = f"{remote_model_dir}/global_model.pt"
             sftp.put(global_model_path, remote_model_path)
-            print(f"Глобальная модель отправлена на {ip}: {remote_model_path}")
 
 
 
@@ -31,7 +29,7 @@ def aggregate_models(model_paths: list, output_path: str, input_dim: int, output
     aggregated_model = LeNet()
     aggregated_state_dict = None
     for path in model_paths:
-        model_state_dict = torch.load(path)
+        model_state_dict = torch.load(path, weights_only=True)
         if aggregated_state_dict is None:
             aggregated_state_dict = model_state_dict
         else:

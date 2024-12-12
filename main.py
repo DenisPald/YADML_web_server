@@ -86,13 +86,13 @@ async def run_training(
             detail="Training process is already running."
         )
     
-    config_path = "main_node/conf.json"
+    config_path = "conf.json"
     with open(config_path, "w", encoding="utf-8") as config_file:
         json.dump([worker.model_dump_json() for worker in workers], config_file, ensure_ascii=False, indent=4)
 
     # Запускаем скрипт в отдельном процессе
     process = subprocess.Popen(
-        ["python3", "main_node/run.py"],
+        ["python3", "run.py"],
     )
     PROCESS_TRACKER["running"] = True
 

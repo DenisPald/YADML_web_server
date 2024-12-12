@@ -3,7 +3,6 @@ import paramiko
 import asyncio
 import asyncssh
 import json
-import pprint
 
 from dataset_utils import split_dataset
 from ssh_utils import distribute_files_to_nodes
@@ -14,14 +13,12 @@ async def execute_remote_training(ssh_config: dict, script_path: str, args: dict
     cmd = f"python3 {script_path} " + " ".join([f"--{k} {v}" for k, v in args.items()])
     # print(f"Запуск команды на {ip}:{ssh_config["port"]} : {cmd}")
 
-    async with asyncssh.connect(**ssh_config) as conn:
-        process = await conn.create_process(cmd)
-        # stdout, stderr = await process.communicate()
+    host = ssh_config.pop('hostname')
 
-        # if stdout:
-        #     print(f"[{ip}] {stdout.strip()}")
-        # if stderr:
-        #     print(f"[{ip} ERROR] {stderr.strip()}")
+    async with asyncssh.connect(host, **ssh_config, known_hosts=None) as conn:
+        process = await conn.create_process(cmd)
+
+    ssh_config['hostname'] = host
 
 
 def collect_remote_models(nodes: list[dict], remote_model_dir: str, remote_model_name:str, local_model_dir: str) -> list[str]:
@@ -30,8 +27,8 @@ def collect_remote_models(nodes: list[dict], remote_model_dir: str, remote_model
 
     for config in nodes:
         remote_model_path = f"{remote_model_dir}/{remote_model_name}"
-        local_model_path = os.path.join(local_model_dir, f"model_{config['ip'].replace('.', '_')}_{config['port']}.pt")
-
+        local_model_path = os.path.join(local_model_dir, f"model_{config['hostname'].replace('.', '_')}_{config['port']}.pt")
+        
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(**config)
@@ -60,6 +57,11 @@ async def load_nodes_config(config_path="conf.json") -> list[dict]:
         raise ValueError("Configuration file must contain a list of nodes.")
 
     nodes = [json.loads(node) for node in nodes]
+
+    # rename param ip to hostname
+    for node in nodes:
+        ip = node.pop('ip')
+        node['hostname'] = ip
     
     return nodes
 
@@ -70,8 +72,6 @@ async def main():
     n_splits = 2
 
     nodes = await load_nodes_config()
-
-    pprint.pprint(nodes)
 
     remote_dir = "/app/dataset_parts"
     remote_script_path = "/app/train.py"
