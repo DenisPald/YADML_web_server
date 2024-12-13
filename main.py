@@ -26,10 +26,14 @@ def verify_credentials(username: str, password: str) -> bool:
     """Проверка имени пользователя и пароля."""
     return secrets.compare_digest(username, USERNAME) and secrets.compare_digest(password, PASSWORD)
 
+class AuthJsonModel(BaseModel):
+    username: str
+    password: str
+
 @app.post("/auth", response_model=AuthResponse)
-async def auth(form_data: OAuth2PasswordRequestForm = Depends()):
+async def auth(auth_json: AuthJsonModel):
     """Роут для аутентификации. Принимает логин и пароль, возвращает токен при успешной аутентификации."""
-    if not verify_credentials(form_data.username, form_data.password):
+    if not verify_credentials(auth_json.username, auth_json.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
