@@ -1,5 +1,6 @@
 import os
 import asyncio
+import asyncssh
 import json
 
 from dataset_utils import split_dataset
@@ -8,7 +9,6 @@ from model_utils import aggregate_models, distribute_global_model
 
 
 async def execute_remote_training(ssh_config: dict, script_path: str, args: dict[str, str]):
-    import asyncssh
 
     cmd = f"python3 {script_path} " + " ".join([f"--{k} {v}" for k, v in args.items()])
     host = ssh_config['hostname']
@@ -36,7 +36,7 @@ async def execute_remote_training(ssh_config: dict, script_path: str, args: dict
         return -1
 
 
-def load_nodes_config(config_path="conf.json") -> list[dict]:
+def load_config(config_path="conf.json") -> dict:
     """
     Загружает конфигурацию узлов из файла JSON.
     """
@@ -44,20 +44,16 @@ def load_nodes_config(config_path="conf.json") -> list[dict]:
         raise FileNotFoundError(f"Configuration file '{config_path}' not found.")
 
     with open(config_path, "r", encoding="utf-8") as config_file:
-        nodes = json.load(config_file)
+        config = json.load(config_file)
 
     # Валидация структуры данных
-    if not isinstance(nodes, list):
-        raise ValueError("Configuration file must contain a list of nodes.")
+    if not isinstance(config, dict):
+        raise ValueError("Configuration file must contain a dict of params.")
 
-    nodes = [json.loads(node) for node in nodes]
+    if not isinstance(config['nodes'], list):
+        raise ValueError("Configuration file must contain a dict of params.")
 
-    # rename param ip to hostname
-    for node in nodes:
-        ip = node.pop('ip')
-        node['hostname'] = ip
-
-    return nodes
+    return config
 
 
 async def main():
@@ -65,7 +61,8 @@ async def main():
     output_dir = "splits/"
     n_splits = 2
 
-    nodes = load_nodes_config()
+    config = load_config()
+    nodes = config['nodes']
 
     remote_dir = "/app/dataset_parts"
     remote_script_path = "/app/train.py"

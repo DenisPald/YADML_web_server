@@ -67,16 +67,9 @@ async def upload_file(
     return {"message": "OK"}
 
 
-class WorkerConfig(BaseModel):
-    ip: str
-    port: str
-    username: str
-    password: str
-
-
 @app.post("/run")
 async def run_training(
-    workers: list[WorkerConfig], token: str = Depends(verify_token)
+    workers: dict, token: str = Depends(verify_token)
 ):
     """
     Принимает список воркеров, сохраняет их в конфигурационный файл и запускает скрипт в отдельном процессе.
@@ -90,7 +83,7 @@ async def run_training(
     
     config_path = "conf.json"
     with open(config_path, "w", encoding="utf-8") as config_file:
-        json.dump([worker.model_dump_json() for worker in workers], config_file, ensure_ascii=False, indent=4)
+        json.dump(workers, config_file, ensure_ascii=False, indent=4)
 
     # Запускаем скрипт в отдельном процессе
     process = subprocess.Popen(
