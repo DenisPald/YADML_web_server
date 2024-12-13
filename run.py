@@ -61,8 +61,8 @@ async def main():
     output_dir = "splits/"
     n_splits = 2
 
-    config = load_config()
-    nodes = config['nodes']
+    lr_config = load_config()
+    nodes = lr_config['nodes']
 
     remote_dir = "/app/dataset_parts"
     remote_script_path = "/app/train.py"
@@ -70,23 +70,23 @@ async def main():
     local_model_dir = "local_models/"
     aggregated_model_path = "final_model.pt"
 
-    global_epochs = 4
+    global_epochs = 2
 
     # Разделение датасета на части
-    split_files = split_dataset(dataset_path, n_splits, output_dir)
+    split_files = split_dataset(dataset_path, n_splits, output_dir, lr_config['split_method'])
 
     # Распределение частей датасета по узлам (async)
     await distribute_files_to_nodes(split_files, nodes, remote_dir)
 
     for global_epoch in range(global_epochs):
-        print(f"=== Global Epoch {global_epoch}/{global_epochs} ===")
+        print(f"=== Global Epoch {global_epoch+1}/{global_epochs} ===")
 
         # Запуск обучения на узлах
         tasks = []
         for i, config in enumerate(nodes):
             args = {
                 "data_path": f"{remote_dir}/split_{i}.pt",
-                "epochs": "5",  # Количество локальных эпох на узле
+                "epochs": "15",  # Количество локальных эпох на узле
                 "batch_size": "32",
                 "model_save_path": f"{remote_model_dir}/model_{global_epoch}.pt"
             }
@@ -101,7 +101,13 @@ async def main():
             continue
 
         # Агрегация моделей
-        aggregate_models(node_models, aggregated_model_path, input_dim=28 * 28, output_dim=10)
+        aggregate_models(
+            node_models,
+            aggregated_model_path,
+            input_dim=28 * 28,
+            output_dim=10,
+            aggregation_method=lr_config['aggregation_method']
+        )
 
         # Распространение глобальной модели на узлы
         await distribute_global_model(aggregated_model_path, nodes, remote_model_dir)
